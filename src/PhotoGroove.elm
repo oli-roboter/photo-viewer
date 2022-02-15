@@ -30,6 +30,36 @@ type Msg
   | SlidRipple Int
   | SlidNoise Int
 
+photoArray: Array Photo
+photoArray = Array.fromList initialModel.photos
+
+getPhotoUrl: Int -> String
+getPhotoUrl index =
+  case Array.get index photoArray of
+    Just photo ->
+      photo.url
+    Nothing ->
+      ""
+
+randomPhotoPicker: Random.Generator Int
+randomPhotoPicker = Random.int 0 (Array.length photoArray - 1)
+
+update: Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+  case msg of 
+    GotSelectedIndex index ->
+      ({ model | selectedUrl = getPhotoUrl index}, Cmd.none )
+    ClickedPhoto url ->
+      ({ model | selectedUrl = url }, Cmd.none )
+    ClickedSize size ->
+      ({ model | chosenSize = size }, Cmd.none )
+    ClickedSurpriseMe ->
+      ( model, Random.generate GotSelectedIndex randomPhotoPicker )
+
+
+urlPrefix: String
+urlPrefix =
+  "http://elm-in-action.com/"
 
 view: Model -> Html Msg
 view model =
