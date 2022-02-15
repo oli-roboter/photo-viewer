@@ -47,8 +47,14 @@ initialModel =
 --     Just photo ->
 --       photo.url
 --     Nothing ->
+<<<<<<< Updated upstream
 --       ""
 
+=======
+      -- ""
+
+
+>>>>>>> Stashed changes
 -- randomPhotoPicker: Random.Generator Int
 -- randomPhotoPicker = Random.int 0 (Array.length photoArray - 1)
 
@@ -56,14 +62,21 @@ update: Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of 
     GotSelectedIndex index ->
+<<<<<<< Updated upstream
       ({ model | selectedUrl = selectUrl (getPhotoUrl index) model.status}, Cmd.none )
     ClickedPhoto url ->
       ({ model | selectedUrl = selectUrl url model.status}, Cmd.none )
+=======
+      ({ model | status = selectUrl (getPhotoUrl index) model.status}, Cmd.none )
+    ClickedPhoto url ->
+      ({ model | status = selectUrl url model.status }, Cmd.none )
+>>>>>>> Stashed changes
     ClickedSize size ->
       ({ model | chosenSize = size }, Cmd.none )
     ClickedSurpriseMe ->
       ( model, Random.generate GotSelectedIndex randomPhotoPicker )
 
+<<<<<<< Updated upstream
 selectUrl: String -> Status -> Status
 selectUrl url status =
   case status of
@@ -73,6 +86,17 @@ selectUrl url status =
       status
     Errored errorMessage ->
       status
+=======
+selectUrl : String -> Status -> Status
+selectUrl url status =
+    case status of
+        Loaded photos _ ->
+            Loaded photos url
+        Loading ->
+            status
+        Errored errorMessage ->
+            status
+>>>>>>> Stashed changes
 
 
 urlPrefix: String
@@ -81,13 +105,19 @@ urlPrefix =
 
 view: Model -> Html Msg
 view model =
+<<<<<<< Updated upstream
   div [ class "content" ] <|
     case model.status of
+=======
+  div [ class "content" ]
+    (case model.status of
+>>>>>>> Stashed changes
       Loaded photos selectedUrl ->
         viewLoaded photos selectedUrl model.chosenSize
       Loading ->
         []
       Errored errorMessage ->
+<<<<<<< Updated upstream
         [text ("Error: " ++ errorMessage)]
   
 viewLoaded : List Photo -> String -> ThumbnailSize -> List (Html Msg)
@@ -103,6 +133,25 @@ viewLoaded photos selectedUrl chosenSize =
   , img [ class "large", src (urlPrefix ++ "large/" ++ selectedUrl)][]
   ]
   
+=======
+        [ text "Error: " ++ errorMessage ]
+    )
+
+viewLoaded: List Photo -> String -> ThumbnailSize -> Html Msg
+viewLoaded photos selectedUrl chosenSize =
+  [ h1 [] [ text "Photo Groove" ]
+    , button [ onClick ClickedSurpriseMe ][ text "Surprise me" ]
+    , h3 [][ text "Thumbnail Size:" ]
+    , div [ id "choose-size" ] <|
+        List.map viewSizeChooser [ Small, Medium, Large ]
+    , div [ id "thumbnails", class (sizeToString chosenSize)](
+        List.map (viewThumbnail selectedUrl) photos
+      ) -- -> Generates a list of 3 images
+    , img [ class "large", src (urlPrefix ++ "large/" ++ selectedUrl)][]
+    ]
+
+
+>>>>>>> Stashed changes
 viewThumbnail: String -> Photo -> Html Msg
 viewThumbnail selectedUrl thumb =
     img 
