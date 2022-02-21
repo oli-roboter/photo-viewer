@@ -1,4 +1,5 @@
-module PhotoGroove exposing (main)
+port module PhotoGroove exposing (main, photoDecoder)
+-- module PhotoGroove exposing (main)
 
 import Browser
 import Html exposing (..)
@@ -21,6 +22,7 @@ urlPrefix =
 type Msg 
   = ClickedPhoto String
   | GotRandomPhoto Photo
+  | GotActivity String
   | ClickedSize ThumbnailSize
   | ClickedSurpriseMe
   | GotPhotos (Result Http.Error (List Photo))
@@ -59,7 +61,8 @@ viewLoaded  photos selectedUrl model =
   , button 
       [ onClick ClickedSurpriseMe ]
       [ text "Surprise me" ]
-  , div [ class "filters" ]
+  , div [ class "activity" ][ text model.activity ]
+  , div [ class "filters" ] 
     [ viewFilter SlidHue "Hue" model.hue
     , viewFilter SlidRipple "Ripple" model.ripple
     , viewFilter SlidNoise "Noise" model.noise
@@ -71,10 +74,7 @@ viewLoaded  photos selectedUrl model =
   , div 
     [ id "thumbnails", class (sizeToString model.chosenSize)] <|
     List.map (viewThumbnail selectedUrl) photos -- -> Generates a list of 3 images
-  , img 
-    [ class "large"
-    , src (urlPrefix ++ "large/" ++ selectedUrl)]
-    []
+  , canvas [ id "main-canvas", class "large" ] []
   ]
 
 
@@ -139,34 +139,44 @@ type Status
   | Errored String
 
 
+port setFilters : FilterOptions -> Cmd msg
 
--- MODEL --
+port activityChanges : (String -> msg) -> Sub msg
+
+type alias FilterOptions =
+  { url: String
+  , filters: List {name: String, amount: Float}
+  }
+
 type alias Model =
   { status: Status
+  , activity: String
   , chosenSize: ThumbnailSize
   , hue: Int
   , ripple: Int
   , noise: Int
   }
 
-
 initialModel: Model
 initialModel =
   { status = Loading
-    , chosenSize = Medium
-    , hue = 5
-    , ripple = 5
-    , noise = 5
+  , activity = ""
+  , chosenSize = Medium
+  , hue = 5
+  , ripple = 5
+  , noise = 5
   }
 
 
 update: Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
+    GotActivity activity ->
+      ( { model | activity = activity }, Cmd.none )
     GotRandomPhoto photo ->
-      ({ model | status = selectUrl photo.url model.status}, Cmd.none )
+      applyFilters { model | status = selectUrl photo.url model.status }
     ClickedPhoto url ->
-      ({ model | status = selectUrl url model.status }, Cmd.none )
+      applyFilters { model | status = selectUrl url model.status }
     ClickedSize size ->
       ({ model | chosenSize = size }, Cmd.none )
     ClickedSurpriseMe ->
@@ -192,18 +202,41 @@ update msg model =
             photosLog = log "photos" photos
             firstUrlLog = log "Firsrtphoto" first
           in
-          ({ model | status = Loaded photos first.url }, Cmd.none )
+          applyFilters { model | status = Loaded photos first.url }
         [] ->
           ({ model | status = Errored "0 photos found" }, Cmd.none )
     GotPhotos (Err httpError )->
       ({ model | status = Errored "Server error!" }, Cmd.none ) 
     SlidHue hue ->
-      ( { model | hue = hue }, Cmd.none )
+      applyFilters { model | hue = hue }
     SlidRipple ripple ->
-        ( { model | ripple = ripple }, Cmd.none )
+      applyFilters { model | ripple = ripple }
     SlidNoise noise ->
-        ( { model | noise = noise }, Cmd.none )  
+      applyFilters { model | noise = noise }
  
+
+applyFilters : Model -> ( Model, Cmd Msg )
+applyFilters model =
+  case model.status of
+    Loaded photos selectedUrl ->
+      let
+        filters =
+          [ { name = "Hue", amount = toFloat model.hue/11 }
+          , { name = "Ripple", amount = toFloat model.ripple/11 }
+          , { name = "Noise", amount = toFloat model.noise/11 }
+          ]
+
+        url =
+          urlPrefix ++ "large/" ++ selectedUrl
+      in
+      ( model, setFilters { url = url, filters = filters } )
+
+    Loading ->
+      ( model, Cmd.none )
+
+    Errored errorMessage ->
+      ( model, Cmd.none )
+
 
 selectUrl : String -> Status -> Status
 selectUrl url status =
@@ -227,17 +260,39 @@ initialCmd =
 
 
 --MAIN---
-main: Program() Model Msg
+-- Browser.element types:
+-- { init : flags -> ( model, Cmd msg )
+-- , view : model -> Html msg
+-- , update : msg -> model -> ( model, Cmd msg )
+-- , subscriptions : model -> Sub msg
+-- }
+-- -> Program flags model msg
+main: Program Float Model Msg
 main =
   Browser.element
-    { init = \_ -> ( initialModel, initialCmd )
+    { init = init
     , view = view
     , update = update
-    , subscriptions = \_ -> Sub.none
+    , subscriptions = subscriptions
     }
 
---Javascript integration--
+init: Float -> (Model, Cmd Msg)
+init flags =
+  let
+    activity =
+      "Initializing Pasta v" ++ String.fromFloat flags
+  in
+  ( { initialModel | activity = activity }, initialCmd )
 
+
+subscriptions: Model -> Sub Msg
+subscriptions model = 
+-- model is passed as arg because the Msg can be changed depeninding of what's in model
+-- In this case this isn't used and GotActivity Msg is sent regardless of whats in model
+  activityChanges GotActivity
+
+
+--Javascript integration--
 rangeSlider : List (Attribute msg) -> List (Html msg) -> Html msg
 rangeSlider attributes children =
   node "range-slider" attributes children
