@@ -30,36 +30,6 @@ type Msg
   | SlidRipple Int
   | SlidNoise Int
 
-photoArray: Array Photo
-photoArray = Array.fromList initialModel.photos
-
-getPhotoUrl: Int -> String
-getPhotoUrl index =
-  case Array.get index photoArray of
-    Just photo ->
-      photo.url
-    Nothing ->
-      ""
-
-randomPhotoPicker: Random.Generator Int
-randomPhotoPicker = Random.int 0 (Array.length photoArray - 1)
-
-update: Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-  case msg of 
-    GotSelectedIndex index ->
-      ({ model | selectedUrl = getPhotoUrl index}, Cmd.none )
-    ClickedPhoto url ->
-      ({ model | selectedUrl = url }, Cmd.none )
-    ClickedSize size ->
-      ({ model | chosenSize = size }, Cmd.none )
-    ClickedSurpriseMe ->
-      ( model, Random.generate GotSelectedIndex randomPhotoPicker )
-
-
-urlPrefix: String
-urlPrefix =
-  "http://elm-in-action.com/"
 
 view: Model -> Html Msg
 view model =
@@ -328,18 +298,19 @@ rangeSlider attributes children =
   node "range-slider" attributes children
 
 onSlide: (Int -> msg) -> Attribute msg
--- onSlide toMsg =
---   let
---     detailUserSlidTo : Decoder Int
---     detailUserSlidTo =
---       at [ "detail", "userSlidTo" ] int
+{- onSlide toMsg =
+   let
+     detailUserSlidTo : Decoder Int
+     detailUserSlidTo =
+       at [ "detail", "userSlidTo" ] int
 
---     msgDecoder : Decoder msg
---     msgDecoder =
---       Json.Decode.map toMsg detailUserSlidTo
---   in
---   on "slide" msgDecoder
+     msgDecoder : Decoder msg
+     msgDecoder =
+       Json.Decode.map toMsg detailUserSlidTo
+   in
+   on "slide" msgDecoder
+-}
 onSlide toMsg =
   at [ "detail", "userSlidTo" ] int -- Decode method that parses tghrough fields "detail: { userSlidTo: value }"
     |> Json.Decode.map toMsg -- transforms the int into a message
-    |> on "slide" 
+    |> on "slide"
