@@ -6,3 +6,6 @@ Project to learn elm
 
 **Command to create the page in http://localhost:8000**
 ```elm reactor``` 
+
+**To run unit tests the command is:**
+```elm-test``` 
